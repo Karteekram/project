@@ -8,20 +8,33 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import gdown
 
+# ------------------- FORCE DELETE OLD FILES -------------------
+for f in ["model.pth", "brand_embeddings.npy", "brand_labels.npy"]:
+    if os.path.exists(f):
+        os.remove(f)
+
 # ------------------- DOWNLOAD FUNCTION -------------------
-def download_file(url, output):
-    if not os.path.exists(output):
-        st.write(f"Downloading {output}...")
-        gdown.download(url, output, quiet=False)
+def download_file(file_id, output):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    st.write(f"Downloading {output}...")
+    gdown.download(url, output, quiet=False, fuzzy=True)
 
-# 🔥 USE FULL LINKS
-model_url = "https://drive.google.com/uc?id=1fr23oaG3AfRncEwUqoImNgIKKGmm0M3M"
-emb_url   = "https://drive.google.com/uc?id=1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0"
-label_url = "https://drive.google.com/uc?id=1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
+# ------------------- DOWNLOAD FILES -------------------
+download_file("1fr23oaG3AfRncEwUqoImNgIKKGmm0M3M", "model.pth")
+download_file("1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0", "brand_embeddings.npy")
+download_file("1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk", "brand_labels.npy")
 
-download_file(model_url, "model.pth")
-download_file(emb_url, "brand_embeddings.npy")
-download_file(label_url, "brand_labels.npy")
+# ------------------- DEBUG CHECK -------------------
+st.write("Model file size:", os.path.getsize("model.pth"))
+
+with open("model.pth", "rb") as f:
+    first_bytes = f.read(50)
+    st.write("First bytes:", first_bytes)
+
+# ------------------- VALIDATION -------------------
+if os.path.getsize("model.pth") < 1000000:
+    st.error("❌ Model file is corrupted or not downloaded properly")
+    st.stop()
 
 # ------------------- LOAD MODEL -------------------
 model = timm.create_model("vit_base_patch16_224", pretrained=False, num_classes=2)
@@ -38,6 +51,7 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+# ------------------- EMBEDDING FUNCTION -------------------
 def get_embedding(img):
     with torch.no_grad():
         feat = model.forward_features(img.unsqueeze(0))
