@@ -8,16 +8,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import gdown
 
-# ------------------- FORCE DELETE OLD FILES -------------------
-for f in ["model.pth", "brand_embeddings.npy", "brand_labels.npy"]:
-    if os.path.exists(f):
-        os.remove(f)
-
 # ------------------- DOWNLOAD FUNCTION -------------------
 def download_file(file_id, output):
-    url = f"https://drive.google.com/uc?id={file_id}"
-    st.write(f"Downloading {output}...")
-    gdown.download(url, output, quiet=False, fuzzy=True)
+    if not os.path.exists(output):
+        url = f"https://drive.google.com/uc?id={file_id}"
+        st.write(f"Downloading {output}...")
+        gdown.download(url, output, quiet=False, fuzzy=True)
 
 # ------------------- DOWNLOAD FILES -------------------
 download_file("1MS-NCzgXxEPD0VnC2BWS4clrHgipQDxO", "model.pth")
@@ -25,7 +21,7 @@ download_file("1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0", "brand_embeddings.npy")
 download_file("1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk", "brand_labels.npy")
 
 # ------------------- DEBUG CHECK -------------------
-st.write("Model file size:", os.path.getsize("model.pth"))
+st.write("Model file size (bytes):", os.path.getsize("model.pth"))
 
 with open("model.pth", "rb") as f:
     first_bytes = f.read(50)
