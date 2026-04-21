@@ -8,33 +8,46 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import requests
 
-# ------------------- FILE URLS (UPDATED WITH YOUR IDS) -------------------
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"
-EMB_URL   = "https://drive.google.com/uc?export=download&id=1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
-LABEL_URL = "https://drive.google.com/uc?export=download&id=1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
+# ------------------- FILE IDS -------------------
+MODEL_ID = "1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"
+EMB_ID   = "1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
+LABEL_ID = "1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
 
-# ------------------- DOWNLOAD FUNCTION -------------------
-def download_file(url, filename):
-    if not os.path.exists(filename):
-        with st.spinner(f"Downloading {filename}..."):
-            r = requests.get(url, stream=True)
-            with open(filename, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+# ------------------- GOOGLE DRIVE DOWNLOAD (FIXED) -------------------
+def download_file(file_id, filename):
+    if os.path.exists(filename):
+        return
+
+    with st.spinner(f"Downloading {filename}..."):
+        URL = "https://drive.google.com/uc?export=download"
+        session = requests.Session()
+
+        response = session.get(URL, params={'id': file_id}, stream=True)
+
+        # Handle large file confirmation token
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                response = session.get(URL, params={'id': file_id, 'confirm': value}, stream=True)
+
+        with open(filename, "wb") as f:
+            for chunk in response.iter_content(32768):
+                if chunk:
+                    f.write(chunk)
 
 # ------------------- DOWNLOAD FILES -------------------
-download_file(MODEL_URL, "model.pth")
-download_file(EMB_URL, "brand_embeddings.npy")
-download_file(LABEL_URL, "brand_labels.npy")
+download_file(MODEL_ID, "model.pth")
+download_file(EMB_ID, "brand_embeddings.npy")
+download_file(LABEL_ID, "brand_labels.npy")
 
 # ------------------- VALIDATION -------------------
 def check(path, min_mb):
     if not os.path.exists(path):
         st.error(f"{path} missing ❌")
         st.stop()
+
     size = os.path.getsize(path) / (1024 * 1024)
     st.write(f"{path}: {round(size,2)} MB")
+
     if size < min_mb:
         st.error(f"{path} corrupted ❌")
         st.stop()
