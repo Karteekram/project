@@ -6,24 +6,27 @@ from torchvision import transforms
 import timm
 from sklearn.metrics.pairwise import cosine_similarity
 import os
-import gdown
+import requests
 
-# ------------------- FILE IDS -------------------
-MODEL_ID = "1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"   
-EMB_ID   = "1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
-LABEL_ID = "1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
+# ------------------- FILE URLS (UPDATED WITH YOUR IDS) -------------------
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"
+EMB_URL   = "https://drive.google.com/uc?export=download&id=1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
+LABEL_URL = "https://drive.google.com/uc?export=download&id=1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
 
-# ------------------- DOWNLOAD FUNCTION (NO CACHE) -------------------
-def download(file_id, output):
-    url = f"https://drive.google.com/uc?id={file_id}"
-    if not os.path.exists(output):
-        with st.spinner(f"Downloading {output}..."):
-            gdown.download(url, output, quiet=False, fuzzy=True)
+# ------------------- DOWNLOAD FUNCTION -------------------
+def download_file(url, filename):
+    if not os.path.exists(filename):
+        with st.spinner(f"Downloading {filename}..."):
+            r = requests.get(url, stream=True)
+            with open(filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
 
 # ------------------- DOWNLOAD FILES -------------------
-download(MODEL_ID, "model.pth")
-download(EMB_ID, "brand_embeddings.npy")
-download(LABEL_ID, "brand_labels.npy")
+download_file(MODEL_URL, "model.pth")
+download_file(EMB_URL, "brand_embeddings.npy")
+download_file(LABEL_URL, "brand_labels.npy")
 
 # ------------------- VALIDATION -------------------
 def check(path, min_mb):
