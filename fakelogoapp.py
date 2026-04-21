@@ -20,7 +20,7 @@ def download_file(file_id, output):
     gdown.download(url, output, quiet=False, fuzzy=True)
 
 # ------------------- DOWNLOAD FILES -------------------
-download_file("1fr23oaG3AfRncEwUqoImNgIKKGmm0M3M", "model.pth")
+download_file("1MS-NCzgXxEPD0VnC2BWS4clrHgipQDxO", "model.pth")
 download_file("1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0", "brand_embeddings.npy")
 download_file("1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk", "brand_labels.npy")
 
