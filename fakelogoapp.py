@@ -13,33 +13,32 @@ MODEL_ID = "1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"
 EMB_ID   = "1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
 LABEL_ID = "1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
 
-# ------------------- DOWNLOAD -------------------
-@st.cache_resource
-def download_files():
-    def download(file_id, output):
-        url = f"https://drive.google.com/uc?id={file_id}"
-        if not os.path.exists(output):
-            with st.spinner(f"Downloading {output}..."):
-                gdown.download(url, output, quiet=False, fuzzy=True)
+# ------------------- DOWNLOAD FUNCTION (NO CACHE) -------------------
+def download(file_id, output):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    if not os.path.exists(output):
+        with st.spinner(f"Downloading {output}..."):
+            gdown.download(url, output, quiet=False, fuzzy=True)
 
-    download(MODEL_ID, "model.pth")
-    download(EMB_ID, "brand_embeddings.npy")
-    download(LABEL_ID, "brand_labels.npy")
-
-download_files()
+# ------------------- DOWNLOAD FILES -------------------
+download(MODEL_ID, "model.pth")
+download(EMB_ID, "brand_embeddings.npy")
+download(LABEL_ID, "brand_labels.npy")
 
 # ------------------- VALIDATION -------------------
 def check(path, min_mb):
     if not os.path.exists(path):
-        st.error(f"{path} missing")
+        st.error(f"{path} missing ❌")
         st.stop()
-    size = os.path.getsize(path)/(1024*1024)
+    size = os.path.getsize(path) / (1024 * 1024)
     st.write(f"{path}: {round(size,2)} MB")
     if size < min_mb:
-        st.error(f"{path} corrupted")
+        st.error(f"{path} corrupted ❌")
         st.stop()
 
 check("model.pth", 10)
+check("brand_embeddings.npy", 1)
+check("brand_labels.npy", 0.1)
 
 # ------------------- LOAD MODEL -------------------
 @st.cache_resource
@@ -69,7 +68,7 @@ def get_embedding(img):
 # ------------------- UI -------------------
 st.title("Fake Logo Detection System")
 
-file = st.file_uploader("Upload Image", type=["jpg","png"])
+file = st.file_uploader("Upload Image", type=["jpg","png","jpeg"])
 
 if file:
     img = Image.open(file).convert("RGB")
