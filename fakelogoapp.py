@@ -8,34 +8,55 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 import gdown
 
-# ------------------- DOWNLOAD FUNCTION -------------------
-def download_file(file_id, output):
-    if not os.path.exists(output):
+# ------------------- FILE IDS -------------------
+MODEL_ID = "1MS-NCzgXxEPD0VnC2BWS4clrHgipQDxO"
+EMB_ID   = "1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0"
+LABEL_ID = "1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
+
+# ------------------- DOWNLOAD (SAFE) -------------------
+@st.cache_resource
+def download_files():
+    def download(file_id, output):
         url = f"https://drive.google.com/uc?id={file_id}"
-        st.write(f"Downloading {output}...")
-        gdown.download(url, output, quiet=False, fuzzy=True)
+        if not os.path.exists(output):
+            with st.spinner(f"Downloading {output}..."):
+                gdown.download(url, output, quiet=False, fuzzy=True)
 
-# ------------------- DOWNLOAD FILES -------------------
-download_file("1MS-NCzgXxEPD0VnC2BWS4clrHgipQDxO", "model.pth")
-download_file("1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0", "brand_embeddings.npy")
-download_file("1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk", "brand_labels.npy")
+    download(MODEL_ID, "model.pth")
+    download(EMB_ID, "brand_embeddings.npy")
+    download(LABEL_ID, "brand_labels.npy")
 
-# ------------------- DEBUG CHECK -------------------
-st.write("Model file size (bytes):", os.path.getsize("model.pth"))
+    return True
 
-with open("model.pth", "rb") as f:
-    first_bytes = f.read(50)
-    st.write("First bytes:", first_bytes)
+download_files()
 
 # ------------------- VALIDATION -------------------
-if os.path.getsize("model.pth") < 1000000:
-    st.error("❌ Model file is corrupted or not downloaded properly")
-    st.stop()
+def validate_file(path, min_size_mb=5):
+    if not os.path.exists(path):
+        st.error(f"{path} missing ❌")
+        st.stop()
+
+    size = os.path.getsize(path) / (1024 * 1024)
+    st.write(f"{path} size: {round(size,2)} MB")
+
+    if size < min_size_mb:
+        st.error(f"{path} corrupted ❌")
+        st.stop()
+
+validate_file("model.pth", 20)   # model must be large
+validate_file("brand_embeddings.npy", 1)
+validate_file("brand_labels.npy", 0.1)
 
 # ------------------- LOAD MODEL -------------------
-model = timm.create_model("vit_base_patch16_224", pretrained=False, num_classes=2)
-model.load_state_dict(torch.load("model.pth", map_location="cpu"))
-model.eval()
+@st.cache_resource
+def load_model():
+    model = timm.create_model("vit_base_patch16_224", pretrained=False, num_classes=2)
+    state = torch.load("model.pth", map_location="cpu")
+    model.load_state_dict(state)
+    model.eval()
+    return model
+
+model = load_model()
 
 # ------------------- LOAD DATA -------------------
 embeddings = np.load("brand_embeddings.npy")
@@ -47,7 +68,6 @@ transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-# ------------------- EMBEDDING FUNCTION -------------------
 def get_embedding(img):
     with torch.no_grad():
         feat = model.forward_features(img.unsqueeze(0))
@@ -73,5 +93,4 @@ if file:
     idx = np.argmax(sim)
 
     st.write("Prediction:", result)
-    st.write("Closest Match Index:", idx)
-    st.write("Confidence:", sim[0][idx])
+    st.write("Confidence:", round(sim[0][idx]*100,2), "%")
