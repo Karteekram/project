@@ -5,25 +5,45 @@ from PIL import Image
 from torchvision import transforms
 import timm
 from sklearn.metrics.pairwise import cosine_similarity
+import os
+import requests
 
-# Load model
+# ------------------- DOWNLOAD FROM GOOGLE DRIVE -------------------
+def download_from_drive(file_id, output):
+    if not os.path.exists(output):
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        st.write(f"Downloading {output}...")
+        r = requests.get(url)
+        with open(output, "wb") as f:
+            f.write(r.content)
+
+# ✅ Your actual file IDs
+download_from_drive("1fr23oaG3AfRncEwUqoImNgIKKGmm0M3M", "model.pth")
+download_from_drive("1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0", "brand_embeddings.npy")
+download_from_drive("1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk", "brand_labels.npy")
+
+# ------------------- LOAD MODEL -------------------
 model = timm.create_model("vit_base_patch16_224", pretrained=False, num_classes=2)
 model.load_state_dict(torch.load("model.pth", map_location="cpu"))
 model.eval()
 
+# ------------------- LOAD DATA -------------------
 embeddings = np.load("brand_embeddings.npy")
 labels = np.load("brand_labels.npy")
 
+# ------------------- TRANSFORM -------------------
 transform = transforms.Compose([
     transforms.Resize((224,224)),
     transforms.ToTensor()
 ])
 
+# ------------------- EMBEDDING FUNCTION -------------------
 def get_embedding(img):
     with torch.no_grad():
         feat = model.forward_features(img.unsqueeze(0))
     return feat.numpy()
 
+# ------------------- UI -------------------
 st.title("Fake Logo Detection System")
 
 file = st.file_uploader("Upload Image", type=["jpg","png"])
