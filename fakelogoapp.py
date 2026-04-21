@@ -9,11 +9,11 @@ import os
 import gdown
 
 # ------------------- FILE IDS -------------------
-MODEL_ID = "1MS-NCzgXxEPD0VnC2BWS4clrHgipQDxO"
-EMB_ID   = "1Lb4Uf0mM5SZJUdATGp-VIuddDyyG1Pq0"
+MODEL_ID = "1vn1Ilpm2dOK9zL3554_-N_SmJM8-2oi6"   
+EMB_ID   = "1R0CJawIZZ_TUe6KXnOG7fkJXZ2mXCshg"
 LABEL_ID = "1Cb0eczJeZMpw0czJLGlI8yzbLkLQIkTk"
 
-# ------------------- DOWNLOAD (SAFE) -------------------
+# ------------------- DOWNLOAD -------------------
 @st.cache_resource
 def download_files():
     def download(file_id, output):
@@ -26,33 +26,26 @@ def download_files():
     download(EMB_ID, "brand_embeddings.npy")
     download(LABEL_ID, "brand_labels.npy")
 
-    return True
-
 download_files()
 
 # ------------------- VALIDATION -------------------
-def validate_file(path, min_size_mb=5):
+def check(path, min_mb):
     if not os.path.exists(path):
-        st.error(f"{path} missing ❌")
+        st.error(f"{path} missing")
+        st.stop()
+    size = os.path.getsize(path)/(1024*1024)
+    st.write(f"{path}: {round(size,2)} MB")
+    if size < min_mb:
+        st.error(f"{path} corrupted")
         st.stop()
 
-    size = os.path.getsize(path) / (1024 * 1024)
-    st.write(f"{path} size: {round(size,2)} MB")
-
-    if size < min_size_mb:
-        st.error(f"{path} corrupted ❌")
-        st.stop()
-
-validate_file("model.pth", 20)   # model must be large
-validate_file("brand_embeddings.npy", 1)
-validate_file("brand_labels.npy", 0.1)
+check("model.pth", 10)
 
 # ------------------- LOAD MODEL -------------------
 @st.cache_resource
 def load_model():
-    model = timm.create_model("vit_base_patch16_224", pretrained=False, num_classes=2)
-    state = torch.load("model.pth", map_location="cpu")
-    model.load_state_dict(state)
+    model = timm.create_model("vit_small_patch16_224", pretrained=False, num_classes=2)
+    model.load_state_dict(torch.load("model.pth", map_location="cpu"))
     model.eval()
     return model
 
